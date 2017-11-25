@@ -2,19 +2,19 @@
 "vim: ft=vim
 
 function! Layers()
-  " Configuration Layers declaration.
-  " Add layers with `Layer '+layername'` and add individual packages
-  " with `ExtraPlugin 'githubUser/Repo'`.
+" Configuration Layers declaration.
+" Add layers with `Layer '+layername'` and add individual packages
+" with `ExtraPlugin 'githubUser/Repo'`.
 
   Layer '+core/behavior'
   Layer '+core/sensible'
-  Layer '+completion/deoplete' " Or '+completion/nvim-completion-manager'
+  Layer '+completion/nvim-completion-manager' " Or '+completion/deoplete'
   Layer '+completion/snippets'
   Layer '+checkers/ale' " Or '+checkers/neomake'
   Layer '+checkers/quickfix'
   Layer '+nav/buffers'
   Layer '+nav/files'
-  Layer '+nav/fuzzy'
+  Layer '+nav/fzf' " Or '+nav/fuzzy'
   Layer '+nav/quit'
   Layer '+nav/start-screen'
   Layer '+nav/text'
@@ -25,6 +25,7 @@ function! Layers()
   Layer '+tools/terminal'
   Layer '+ui/airline'
   Layer '+ui/toggles'
+
   " Language layers.
   Layer '+lang/elm'
   Layer '+lang/haskell' " Set backend with e.g. let g:spHaskellBackend = 'lsp', in UserInit
@@ -38,13 +39,13 @@ function! Layers()
 endfunction
 
 function! UserInit()
-  " This block is called at the very startup of Spaceneovim initialization
-  " before layers configuration.
-
+" This block is called at the very startup of Spaceneovim initialization
+" before layers configuration.
+  
 endfunction
 
 function! UserConfig()
-  " This block is called after Spaceneovim layers are configured.
+" This block is called after Spaceneovim layers are configured.
 
   SetThemeWithBg 'dark', 'space-vim-dark', 'violet'
 endfunction
