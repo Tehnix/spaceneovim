@@ -35,15 +35,31 @@
   " Cache location for caching which plugins are loaded.
   let s:cache_dir = expand(resolve(s:home_dir . '/.cache/nvim'))
   let s:cache_loaded_plugins = expand(resolve(s:cache_dir . '/loaded-plugins.vim'))
+  " Bootstrapped VIM lock file.
+  let s:vim_boostrapped = expand(resolve(s:config_dir . '/bootstrapped.lock'))
 " }}}
 
-" Internal state {{{
+" Overwriteable internal state {{{
+" By pulling in from `g:` we allow the user to bootstrap them.
   " All layers added in the init.vim configuration.
   let s:dotspaceneovim_configuration_layers = get(g:, 'dotspaceneovim_configuration_layers', {})
   " Extra plugins added in init.vim configuration.
   let s:dotspaceneovim_additional_plugins = get(g:, 'dotspaceneovim_additional_plugins', [])
   " All enabled VIM plug packages.
   let s:dotspaceneovim_enabled_plug_plugins = get(g:, 'dotspaceneovim_enabled_plug_plugins', [])
+" }}}
+
+" Internal state {{{
+  " Track installation progress.
+  let s:dotspaceneovim_installation_bootstrapping = get(s:, 'dotspaceneovim_installation_bootstrapping', 0)
+  " Keep the output from the installation.
+  let s:dotspaceneovim_installation_output = get(s:, 'dotspaceneovim_installation_output', [])
+  " Save the number of the buffer we'll be writing to. A `-1` means not assigned yet.
+  let s:dotspaceneovim_installation_output_buff_no = get(s:, 'dotspaceneovim_installation_output_buff_no', -1)
+" }}}
+
+" Globally accessible state {{{
+  let g:spaceneovim_enabled_layers = {}
 " }}}
 
 " Set up configurable variables {{{
@@ -53,6 +69,7 @@
   " Debugging flags.
   let g:dotspaceneovim_debug = get(g:, 'dotspaceneovim_debug', 0)
   let g:dotspaceneovim_verbose_debug = get(g:, 'dotspaceneovim_verbose_debug', 0)
+  let g:dotspaceneovim_layer_debug = get(g:, 'dotspaceneovim_layer_debug', 0)
   " Set up the leader key.
   let g:dotspaceneovim_leader_key = get(g:, 'dotspaceneovim_leader_key', '<Space>')
   " Let Spaceneovim know which layer is the core layer (will be loaded first!).
@@ -61,7 +78,7 @@
   let g:dotspaceneovim_layer_sources = get(g:, 'dotspaceneovim_layer_sources', [s:spaceneovim_layers_dir . '/layers/', s:spaceneovim_layers_dir . '/private/'])
 
   " Configure vim-plugs window location to be a new window in bottom right side.
-  let g:plug_window = 'botright new'
+  let g:plug_window = 'vertical botright new'
 " }}}
 
 ""
@@ -77,10 +94,31 @@ function! spaceneovim#init()
   command! -nargs=+ -bar SetTheme           call s:set_theme(<args>)
   command! -nargs=0 -bar EnableDebug        call s:enable_debugging()
   command! -nargs=0 -bar EnableVerboseDebug call s:enable_verbose_debugging()
+  command! -nargs=0 -bar EnableLayerDebug   call s:enable_layer_debugging()
   command! -nargs=1 -bar SetLayerRepo       call s:set_layer_repo(<args>)
   command! -nargs=0 -bar GetLeader          call spaceneovim#get_leader_key()
   command! -nargs=1 -bar SetLeader          call spaceneovim#set_leader_key(<args>)
   call s:debug('>>> Initializing Spaceneovim')
+endfunction
+
+
+""
+" Delay the execution of the bootstrap until we have buffers available.
+" 
+function! spaceneovim#bootstrap() abort
+  if filereadable(s:vim_boostrapped)
+    let l:called_from_bootstrap = 0
+    call s:load_spaceneovim_functionality(l:called_from_bootstrap)
+    augroup spaceneovim_plugin_update
+      au!
+      au VimEnter * call spaceneovim#detect_plugin_changes_and_sync()
+    augroup END
+  else
+    augroup spaceneovim_bootstrap
+      au!
+      au VimEnter * call spaceneovim#_bootstrap()
+    augroup END
+  endif
 endfunction
 
 ""
@@ -89,13 +127,17 @@ endfunction
 " NOTE: This is the starting function of Spaceneovim, and everything will be
 " called from here.
 "
-function! spaceneovim#bootstrap() abort
+function! spaceneovim#_bootstrap() abort
+  " Mark the installation as started.
+  call s:setup_installation_state()
+
+  " Check for python support.
   let l:python_support = spaceneovim#check_for_python()
   if l:python_support ==? 0
-    echo 'IMPORTANT! Neovim could not find support for python, which means'
-    echo 'some layers may not work. To fix this, install the neovim python'
-    echo 'package. Doing `pip install neovim` should work.'
-    echo ''
+    call s:output('IMPORTANT! Neovim could not find support for python, which means')
+    call s:output('some layers may not work. To fix this, install the neovim python')
+    call s:output('package. Doing `pip install neovim` should work.')
+    call s:output('')
   endif
   call s:debug('>>> Starting SpaceNeovim bootstrap')
 
@@ -105,11 +147,36 @@ function! spaceneovim#bootstrap() abort
     \s:spaceneovim_layers_dir
   \)
 
-  " Set up layer variables {{{
+  if l:python_support ==? 1 || exists('g:gui_oni')
+    call spaceneovim#setup_vim_plug()
+  endif
+
+  let l:called_from_bootstrap = 1
+  call s:load_spaceneovim_functionality(l:called_from_bootstrap)
+
+  call spaceneovim#install_vim_plug_plugins()
+
+  call s:debug('>>> Finished SpaceNeovim bootstrap')
+
+  " Make sure we don't bootstrap again!
+  if writefile([], s:vim_boostrapped)
+    call s:debug('>>> Writing bootstrap lock file, to avoid running on every startup')
+  endif
+
+  " FIXME: This causes vim-airline to go a little crazy.
+  " Finally, source VIM again.
+  " call g:SyncConfiguration(s:dotspaceneovim_installation_output_buff_no, s:dotspaceneovim_installation_output)
+  
+  call s:debug('--- Installation finished, please restart Neovim! ---')
+endfunction
+
+function! s:load_spaceneovim_functionality(called_from_bootstrap)
+  let l:python_support = spaceneovim#check_for_python()
+
+  " Set up layer variables
   let l:spaceneovim_layers = {}
-  let g:spaceneovim_enabled_layers = {}
+  let g:spaceneovim_enabled_layers = get(g:, 'spaceneovim_enabled_layers', {})
   let l:spaceneovim_plugins = []
-  " }}}
 
   " Go through each layer source.
   for l:layer_source in g:dotspaceneovim_layer_sources
@@ -137,17 +204,25 @@ function! spaceneovim#bootstrap() abort
 
   " Only proceed if we have python support (or we are using the Oni GUI).
   if l:python_support ==? 1 || exists('g:gui_oni')
-    call spaceneovim#setup_vim_plug()
     call spaceneovim#install_enabled_plugins(
       \g:dotspaceneovim_layer_sources,
       \g:spaceneovim_enabled_layers,
       \s:dotspaceneovim_additional_plugins,
     \)
   endif
-  call spaceneovim#detect_plugin_changes()
 
   call g:Spaceneovim_postinstall()
-  call s:debug('>>> Finished SpaceNeovim bootstrap')
+endfunction
+
+function! s:setup_installation_state()
+  if s:dotspaceneovim_installation_bootstrapping == 0
+    let s:dotspaceneovim_installation_bootstrapping = 1
+    let s:dotspaceneovim_installation_output = []
+    " Create a new scratch buffer where we'll put the installation progress into.
+    let s:dotspaceneovim_installation_output_buff_no = NewScratchBuffer()
+    " Move back to the original buffer (i.e. away from the new one).
+    wincmd k
+  endif
 endfunction
 
 ""
@@ -156,8 +231,13 @@ endfunction
 " VIM config.
 "
 function! s:debug(msg)
-  if g:dotspaceneovim_debug
-    echo a:msg
+  if g:dotspaceneovim_debug || s:dotspaceneovim_installation_bootstrapping
+    if !has('nvim') || s:dotspaceneovim_installation_output_buff_no == -1
+      echo a:msg
+    else
+      let s:dotspaceneovim_installation_output += [a:msg]
+      call OutputListToBuffer(s:dotspaceneovim_installation_output_buff_no, s:dotspaceneovim_installation_output)
+    endif
   endif
 endfunction
 
@@ -167,7 +247,24 @@ endfunction
 "
 function! s:verbose_debug(msg)
   if g:dotspaceneovim_verbose_debug
+    if !has('nvim') || s:dotspaceneovim_installation_output_buff_no == -1
+      echo a:msg
+    else
+      let s:dotspaceneovim_installation_output += [a:msg]
+      call OutputListToBuffer(s:dotspaceneovim_installation_output_buff_no, s:dotspaceneovim_installation_output)
+    endif
+  endif
+endfunction
+
+""
+" Output messages to a buffer if Neovim, or just echo if VIM.
+"
+function! s:output(msg)
+  if !has('nvim') || s:dotspaceneovim_installation_output_buff_no == -1
     echo a:msg
+  else
+    let s:dotspaceneovim_installation_output += [a:msg]
+    call OutputListToBuffer(s:dotspaceneovim_installation_output_buff_no, s:dotspaceneovim_installation_output)
   endif
 endfunction
 
@@ -209,7 +306,7 @@ function! spaceneovim#find_all_layers(layer_source) abort
       if filereadable(l:layer . '/config.vim') || filereadable(l:layer . '/packages.vim')
         let l:layer_name = substitute(l:layer, a:layer_source, '', '')
         call add(l:located_layers, l:layer_name)
-        call s:debug('    Found ' . l:layer_name)
+        call s:verbose_debug('    Found ' . l:layer_name)
       endif
     endfor
   endfor
@@ -224,7 +321,7 @@ function! spaceneovim#filter_enabled_layers(located_layers, configured_layers) a
   for l:configuration_layer in a:configured_layers
     if index(a:located_layers, l:configuration_layer) != -1
       call add(l:enabled_layers, l:configuration_layer)
-      call s:debug('    Enabled ' . l:configuration_layer)
+      call s:verbose_debug('    Enabled ' . l:configuration_layer)
     endif
   endfor
   return l:enabled_layers
@@ -237,24 +334,34 @@ function! spaceneovim#setup_vim_plug() abort
   if empty(glob(s:vim_plug))
     call s:debug('>>> Downloading plug.vim')
     if has('nvim')
+      let data = {
+      \  'out': []
+      \, 'buf': s:dotspaceneovim_installation_output_buff_no
+      \}
+      let l:job_options = {
+      \  'on_stdout': function('OutputJobToBuffer', data)
+      \, 'on_stderr': function('OutputJobToBuffer', data)
+      \, 'on_exit': function('OutputJobToBuffer', data)
+      \}
       let l:install_plug = jobstart([
       \  'curl'
       \, '-fLo'
       \, s:vim_plug
       \, '--create-dirs'
       \, 'https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
-      \])
+      \], l:job_options)
       let l:waiting_for_plug = jobwait([l:install_plug])
     else
       silent execute '!curl -fLo ' . s:vim_plug . ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
     endif
-    call s:debug('>>> Sourcing ' . $MYVIMRC . ' again')
+    call s:debug('>>> Sourcing ' . s:vim_plug)
+    execute ":source " . s:vim_plug
   endif
+  " If no plugins have been installed yet, make sure the cache file is empty!
   if !isdirectory(s:vim_plugged)
     if writefile([], s:cache_loaded_plugins)
       call s:debug('>>> Overwriting cache file, since no plugins were installed!')
     endif
-    call spaceneovim#install_vim_plug_plugins()
   endif
 endfunction
 
@@ -262,15 +369,12 @@ endfunction
 " Install vim-plug plugins.
 "
 function! spaceneovim#install_vim_plug_plugins()
+  " Make sure the vim-plug plugin folder exists.
   call mkdir(s:vim_plugged, 'p')
+  " Save the plugins to cache.
   call spaceneovim#write_plugins_to_cache()
-  call s:debug('>>> Installing all plugins...')
-  if has('nvim')
-    let l:install_plug_packages = jobstart(['nvim', '+PlugInstall', '+qall'])
-    let l:waiting_for_packages = jobwait([l:install_plug_packages])
-  else
-    silent execute '!vim +PlugInstall +qall'
-  endif
+  call s:debug('>>> Installing all plugins via vim-plug')
+  :PlugInstall! --sync
   call s:debug('>>> All plugins installed')
 endfunction
 
@@ -323,7 +427,7 @@ function! spaceneovim#install_enabled_plugins(layer_sources, enabled_layers, add
   " Install any specified plugins (from layers and init.vim config).
   call s:debug('>>> Installing plugins')
   for l:plugin in a:additional_plugins
-    call s:debug('     ' . l:plugin.name)
+    call s:verbose_debug('     ' . l:plugin.name)
     Plug l:plugin.name, l:plugin.config
     " Add the plugin name so we later on can detect changes from the cache.
     call add(s:dotspaceneovim_enabled_plug_plugins, l:plugin.name)
@@ -353,6 +457,15 @@ function! spaceneovim#detect_plugin_changes()
     call s:debug('>>> Plugins changed, installing new ones')
     call spaceneovim#install_vim_plug_plugins()
   endif
+endfunction
+
+""
+" Same as `spaceneovim#detect_plugin_changes`, but will also sync the 
+" VIM configuration after.
+"
+function! spaceneovim#detect_plugin_changes_and_sync()
+  call spaceneovim#detect_plugin_changes()
+  call g:SyncConfiguration()
 endfunction
 
 ""
@@ -484,10 +597,17 @@ endfunction
   endfunction
 
   ""
-  " Enable debugging output.
+  " Enable verbose debugging output.
   "
   function! s:enable_verbose_debugging()
     let g:dotspaceneovim_verbose_debug = 1
+  endfunction
+
+  ""
+  " Enable debugging output for layers.
+  "
+  function! s:enable_layer_debugging()
+    let g:dotspaceneovim_layer_debug = 1
   endfunction
 
   ""
