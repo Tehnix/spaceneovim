@@ -14,7 +14,7 @@ function! Layers()
   Layer '+checkers/quickfix'
   Layer '+nav/buffers'
   Layer '+nav/files'
-  Layer '+nav/fzf' " Or '+nav/fuzzy'
+  Layer '+nav/fuzzy' " Or '+nav/fzf'
   Layer '+nav/quit'
   Layer '+nav/start-screen'
   Layer '+nav/text'
@@ -27,11 +27,11 @@ function! Layers()
   Layer '+ui/toggles'
 
   " Language layers.
-  Layer '+lang/elm'
-  Layer '+lang/haskell' " Set backend with e.g. let g:spHaskellBackend = 'lsp', in UserInit
-  Layer '+lang/javascript'
-  Layer '+lang/python'
-  Layer '+lang/ruby'
+  "Layer '+lang/elm'
+  "Layer '+lang/haskell' " Set backend with e.g. let g:spHaskellBackend = 'lsp', in UserInit
+  "Layer '+lang/javascript'
+  "Layer '+lang/python'
+  "Layer '+lang/ruby'
   Layer '+lang/vim'
 
   " Additional plugins.
