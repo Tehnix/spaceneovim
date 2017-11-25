@@ -4,6 +4,15 @@ SpaceNeovim is [Spacemacs](https://github.com/syl20bnr/spacemacs) for Neovim. If
 
 ![Screenshot of SpaceNeovim](assets/Screenshot%202017-08-21%2003.46.23.png)
 
+- [Installation](#installation)
+- [Layers](#layers)
+- [Configuration](#configuration)
+- [Developing](#developing)
+  - [Enable Debugging](#enable-debugging)
+  - [Pre commit linting](#pre-commit-linting)
+- [License](#license)
+- [Troubleshooting](#troubleshooting)
+
 ## Installation
 
 Prerequisites:
@@ -28,6 +37,10 @@ It will,
 - Set up [vim-plug](https://github.com/junegunn/vim-plug)
 - Clone down the [layers repository](https://github.com/Tehnix/spaceneovim-layers)
 - Install default plugins
+
+You can check out the process in the Asciicast below,
+
+[![asciicast](https://asciinema.org/a/zhmdP4lrR8u97vStTVz3a6B9q.png)](https://asciinema.org/a/zhmdP4lrR8u97vStTVz3a6B9q)
 
 ## Layers
 
