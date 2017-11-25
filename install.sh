@@ -23,5 +23,5 @@ mkdir -p "$CONFIG_DIR" \
   && echo ">>> Downloading spaceneovim core" \
   && curl -sSfL https://raw.githubusercontent.com/tehnix/spaceneovim/master/autoload/spaceneovim.vim -o "$AUTOLOAD_FILE" \
   && echo ">>> Launching nvim" \
-  && nvim \
+  && nvim --cmd "let g:dotspaceneovim_do_not_run_bootstrap=1" +SpaceNeovimRunInstallProcess && nvim \
   && echo ">>> DONE!"

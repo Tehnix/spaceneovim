@@ -98,36 +98,37 @@ function! spaceneovim#init()
   command! -nargs=1 -bar SetLayerRepo       call s:set_layer_repo(<args>)
   command! -nargs=0 -bar GetLeader          call spaceneovim#get_leader_key()
   command! -nargs=1 -bar SetLeader          call spaceneovim#set_leader_key(<args>)
+  " Make `spaceneovim#install_spaceneovim` available to the CLI.
+  command! -nargs=0 -bar SpaceNeovimRunInstallProcess call spaceneovim#install_spaceneovim()
   call s:debug('>>> Initializing Spaceneovim')
 endfunction
 
 
 ""
-" Delay the execution of the bootstrap until we have buffers available.
+" Load the Spaceneovim layer functionality, if we are not in the middle of installing
+" Spaceneovim.
 " 
 function! spaceneovim#bootstrap() abort
-  if filereadable(s:vim_boostrapped)
+  " The variable `g:dotspaceneovim_do_not_run_bootstrap` should only ever be
+  " set during the install process on the command line.
+  if !exists('g:dotspaceneovim_do_not_run_bootstrap')
+    " Load the Spaceneovim functionality.
     let l:called_from_bootstrap = 0
     call s:load_spaceneovim_functionality(l:called_from_bootstrap)
     augroup spaceneovim_plugin_update
       au!
       au VimEnter * call spaceneovim#detect_plugin_changes_and_sync()
     augroup END
-  else
-    augroup spaceneovim_bootstrap
-      au!
-      au VimEnter * call spaceneovim#_bootstrap()
-    augroup END
   endif
 endfunction
 
 ""
-" Bootstrap the SpaceNeovim installation.
+" Run the SpaceNeovim installation.
 " 
-" NOTE: This is the starting function of Spaceneovim, and everything will be
+" This is more or less the main install function of Spaceneovim, and everything will be
 " called from here.
 "
-function! spaceneovim#_bootstrap() abort
+function! spaceneovim#install_spaceneovim() abort
   " Mark the installation as started.
   call s:setup_installation_state()
 
@@ -168,6 +169,9 @@ function! spaceneovim#_bootstrap() abort
   " call g:SyncConfiguration(s:dotspaceneovim_installation_output_buff_no, s:dotspaceneovim_installation_output)
   
   call s:debug('--- Installation finished, please restart Neovim! ---')
+
+  " If all went well, quit the install.
+  :quitall
 endfunction
 
 function! s:load_spaceneovim_functionality(called_from_bootstrap)
