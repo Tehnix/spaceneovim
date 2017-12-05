@@ -13,6 +13,7 @@ function! Layers()
   Layer '+checkers/ale' " Or '+checkers/neomake'
   Layer '+checkers/quickfix'
   Layer '+nav/buffers'
+  Layer '+nav/comments'
   Layer '+nav/files'
   Layer '+nav/fuzzy' " Or '+nav/fzf'
   Layer '+nav/quit'
@@ -20,15 +21,17 @@ function! Layers()
   Layer '+nav/text'
   Layer '+nav/tmux'
   Layer '+nav/windows'
+  Layer '+scm/git'
   Layer '+specs/testing'
   Layer '+tools/language-server'
+  Layer '+tools/multicursor'
   Layer '+tools/terminal'
   Layer '+ui/airline'
   Layer '+ui/toggles'
 
   " Language layers.
   "Layer '+lang/elm'
-  "Layer '+lang/haskell' " Set backend with e.g. let g:spHaskellBackend = 'lsp', in UserInit
+  "Layer '+lang/haskell' " Set backend with e.g. let g:spHaskellBackend = 'intero', in UserInit
   "Layer '+lang/javascript'
   "Layer '+lang/python'
   "Layer '+lang/ruby'
