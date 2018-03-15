@@ -16,6 +16,7 @@ function! Layers()
   Layer '+nav/comments'
   Layer '+nav/files'
   Layer '+nav/fuzzy' " Or '+nav/fzf'
+  Layer '+nav/navigation'
   Layer '+nav/quit'
   Layer '+nav/start-screen'
   Layer '+nav/text'
