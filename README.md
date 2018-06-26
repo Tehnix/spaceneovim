@@ -153,3 +153,12 @@ See [LICENSE](LICENSE).
 set -g default-terminal "tmux-256color"
 set -ga terminal-overrides ',xterm-256color:Tc'
 ```
+**LanguageClient:autocmd** (and other Python related) errors
+`no notification handler registered for "/Users/ramanujam/.config/nvim/plugged/La nguageClient-neovim/rplugin/python3/LanguageClient:autocmd:CursorMoved:*"`
+
+Sometimes one of the plugins included might rely on updated Python bindings for Neovim, especially heavily updated, active plugins. Should you be getting Python errors even though you've installed the neovim bindings, update your bindings using:
+
+```bash
+pip install neovim
+pip3 install neovim #python 2 is still default in my MacOS
+```
