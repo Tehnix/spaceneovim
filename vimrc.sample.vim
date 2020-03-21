@@ -8,7 +8,7 @@ function! Layers()
 
   Layer '+core/behavior'
   Layer '+core/sensible'
-  Layer '+completion/nvim-completion-manager' " Or '+completion/deoplete'
+  Layer '+completion/coc' " Or '+completion/deoplete'
   Layer '+completion/snippets'
   Layer '+checkers/ale' " Or '+checkers/neomake'
   Layer '+checkers/quickfix'
@@ -45,7 +45,8 @@ endfunction
 function! UserInit()
 " This block is called at the very startup of Spaceneovim initialization
 " before layers configuration.
-  
+
+  let g:spLspBackend = 'coc-lsp'
 endfunction
 
 function! UserConfig()
