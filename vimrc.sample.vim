@@ -32,10 +32,15 @@ function! Layers()
 
   " Language layers.
   "Layer '+lang/elm'
-  "Layer '+lang/haskell' " Set backend with e.g. let g:spHaskellBackend = 'intero', in UserInit
+  "Layer '+lang/haskell'
+  "Layer '+lang/rust'
+  "Layer '+lang/go'
+  "Layer '+lang/fsharp'
+  "Layer '+lang/java'
   "Layer '+lang/javascript'
   "Layer '+lang/python'
   "Layer '+lang/ruby'
+  "Layer '+lang/php'
   Layer '+lang/vim'
 
   " Additional plugins.
@@ -46,7 +51,14 @@ function! UserInit()
 " This block is called at the very startup of Spaceneovim initialization
 " before layers configuration.
 
+  " Set language server backend to coc.nvim.
   let g:spLspBackend = 'coc-lsp'
+  " Show type/doc information when leaving cursor on an item. Also accessible
+  " via `SPC l i`.
+  let g:spCocHoverInfo = 1
+  " Set Haskell backend to LSP.
+  let g:spHaskellBackend = 'lsp'
+
 endfunction
 
 function! UserConfig()
