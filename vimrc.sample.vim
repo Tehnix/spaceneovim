@@ -38,6 +38,7 @@ function! Layers()
   "Layer '+lang/fsharp'
   "Layer '+lang/java'
   "Layer '+lang/javascript'
+  "Layer '+lang/purescript'
   "Layer '+lang/python'
   "Layer '+lang/ruby'
   "Layer '+lang/php'
